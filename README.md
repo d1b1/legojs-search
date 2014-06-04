@@ -1,4 +1,4 @@
-legojs-search
+LegoJS.io Search UI
 =============
 
-Proof of Concept Search Engine for the LegoJS.io
+Search UI for api.LegoJS.io!
