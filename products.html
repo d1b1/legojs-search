@@ -1,0 +1,180 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>Backbone.js API Search Demo</title>
+  <!-- load the bootstrap stylesheet -->
+  <link href="http://netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css" media="all" rel="stylesheet" type="text/css" />
+  <!-- load the libraries we need -->
+  <script type="text/javascript" src="http://cdnjs.cloudflare.com/ajax/libs/zepto/1.1.3/zepto.min.js"></script>
+  <script type="text/javascript" src="http://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.6.0/underscore-min.js"></script>
+  <script type="text/javascript" src="http://cdnjs.cloudflare.com/ajax/libs/backbone.js/1.1.1/backbone-min.js"></script>
+  <script type="text/javascript" src="http://cdnjs.cloudflare.com/ajax/libs/backbone-localstorage.js/1.1.7/backbone.localStorage.js"></script>
+  <!-- load our scripts -->
+  <script type="text/javascript" src="js2/router.js"></script>
+  <script type="text/javascript" src="js2/models/models.js"></script>
+  <script type="text/javascript" src="js2/views/index.js"></script>
+  <script type="text/javascript" src="js2/views/tr.js"></script>
+  <script type="text/javascript" src="js2/views/new.js"></script>
+  <script type="text/javascript" src="js2/views/edit.js"></script>
+  <script type="text/javascript" src="js2/views/detail.js"></script>
+
+  <style>
+  .spinner {
+    display: inline-block;
+    opacity: 0;
+    width: 0;
+
+    -webkit-transition: opacity 0.25s, width 0.25s;
+    -moz-transition: opacity 0.25s, width 0.25s;
+    -o-transition: opacity 0.25s, width 0.25s;
+    transition: opacity 0.25s, width 0.25s;
+  }
+
+  .has-spinner.active {
+    cursor:progress;
+  }
+
+  .has-spinner.active .spinner {
+    opacity: 1;
+    width: auto; /* This doesn't work, just fix for unkown width elements */
+  }
+
+  .has-spinner.btn-mini.active .spinner {
+      width: 10px;
+  }
+
+  .has-spinner.btn-small.active .spinner {
+      width: 13px;
+  }
+
+  .has-spinner.btn.active .spinner {
+      width: 16px;
+  }
+
+  .has-spinner.btn-large.active .spinner {
+      width: 19px;
+  }
+  </style>
+
+</head>
+<body>
+
+  <div class="container">
+
+    <a href="https://github.com/d1b1/legojs-search"><img style="position: absolute; top: 0; left: 0; border: 0;" src="https://camo.githubusercontent.com/82b228a3648bf44fc1163ef44c62fcc60081495e/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f6c6566745f7265645f6161303030302e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_left_red_aa0000.png"></a>
+
+    <div class="page-header">
+      <h1>LegoJS.io Search</h1>
+      <p class="lead">
+        Simple search for the LegoJS.io API Products.
+      </p>
+    </div>
+
+    <div class="row">
+      <div class="col-md-7" id="primary-content" style="overflow: auto|scroll;">
+        <!-- the container that gets populated with the index -->
+      </div>
+      <div class="col-md-5">
+          <!-- we are going to debug our backbone collection here -->
+          <code id="output" style="height: 500px; overflow: hidden; display: block;white-space:pre-wrap;"></code>
+      </div>
+    </div>
+  </div>
+
+  <!-- the form, used for create and edit -->
+  <script type="text/jst" id="formTemplate">
+    <div class="well">
+      <h2>Add a Product</h2>
+      <div class="alert alert-danger fade in" style="display:none;"></div>
+      <form>
+        <h2><%= name %></h2>
+        <div class="form-group">
+          <label>Name:</label>
+          <input type="text" class="form-control" name="name" value="<%= name %>" />
+        </div>
+        <div class="form-group">
+          <label>Category:</label>
+          <input type="text" class="form-control" name="category" value="" />
+        </div>
+        <div class="form-group">
+          <label>Category:</label>
+          <textarea class="form-control" rows="5" name="category"><%= category %></textarea>
+        </div>
+        <button class="save btn btn-large btn-info" type="submit">Save</button>
+        <a href="#product/index" class="btn btn-large">Cancel</a>
+      </form>
+    </div>
+  </script>
+
+  <!-- the index container -->
+  <script type="text/template" id="indexTemplate">
+    <div id="search" class="well">
+      <input type="text" value="<%= term %>" class="textSearch form-control" placeholder="Search for a Product...">
+    </div>
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th width="10%"></th>
+          <th width="45%">Name</th>
+          <th width="40%">Category</th>
+          <th width="15%">Color</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <a class="btn btn-small btn-success has-spinner">
+    <span class="spinner"><i class="icon-spin icon-refresh"></i></span>
+    Foo
+  </a>
+
+    <a href="javascript:;" class="more">more</a>
+  </script>
+
+  <!-- the row template, renders once for each item in the index -->
+  <script type="text/template" id="rowTemplate">
+    <td>
+      <img src="" class="img-rounded img-responsive">
+    </td>
+    <td>
+      <a href="#product/<%= _id %>/view">
+         <%= name %>
+      </a>
+    </td>
+    <td></td>
+    <td><%= theme %></td>
+  </script>
+
+  <!-- the show template -->
+  <script type="text/template" id="showTemplate">
+    <ol class="breadcrumb">
+      <li>
+        <a href="#product/index">All Products</a>
+      </li>
+      <li class="active">Details</li>
+    </ol>
+
+    <h2>
+      <%= name %>
+      <small>Color: </small>
+    </h2>
+
+    <img src="" class="img-rounded img-responsive">
+
+    <p style="white-space:pre-wrap;"><%= theme %></p>
+
+    <a href="builder.html?id=<%= _id %>">Product Builder</a>
+    <hr/>
+  </script>
+
+  <!-- kick off the app -->
+  <script type="text/javascript">
+
+    var router = new APP.Router({
+      collection: new APP.ProductCollection()
+    });
+
+    // now that everyting is setup we tell backbone to watch the urls
+    Backbone.history.start();
+  </script>
+</body>
+</html>
